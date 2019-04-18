@@ -2,36 +2,31 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 6, 5)
-        self.conv2 = nn.Conv2d(6, 16, 5)
+  def __init__(self):
+    #nn.Module子类的函数必须在构造函数中执行父类的构造函数
+    super(Net,self).__init__()
+    #卷积层'1'表示输入图片为单通道，‘6’表示输出通道数，‘3’表示卷积核尺寸3*3
+    self.conv1 = nn.Conv2d(1,6,3)
+    #线性层 输入1350个特征，输出10个特征
+    self.fc1 = nn.Linear(1350,10) #这里的1350是如何计算的呢？这就要看后面的forward函数
+  #正向传播
+  def forward(self,x):
+    print(x.size())#结果：[1,1,32,32]
+    #卷积-》激活-》池化
+    x = self.conv1(x)#根据卷积的尺寸计算公式，计算结果为30
 
-        self.fc1 = nn.Linear(16*5*5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+    x = F.relu(x)
+    print(x.size())#结果：[1,6,30,30]
+    x = F.max_pool2d(x,(2,2))#我们使用池化层，计算结果为15
+    x = F.relu(x)
+    print(x.size())#结果：[1,6,15,15]
+    #reshape , '-1'表示自适应
+    #这里做的就是压扁的操作 就是把后面的[1,6,15,15]压扁，变为[1,1350]
 
-    def forward(self, x):
-        x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
-        x = F.max_pool2d(F.relu(self.conv2(x)), 2)
+    x = x.view(x.size()[0],-1)
+    print(x.size())#这里就是fc1层的输入1350
+    x = self.fc1(x)
+    return x
+    
 
-        x = x.view(-1, self.num_flat_features(x))
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-
-        return x
-
-    def num_flat_features(self, x):
-        size = x.size()[1:]
-        num_features = 1
-        for s in size:
-            num_features *= s
-        return num_features
-
-
-net = Net()
-
-print(net)
